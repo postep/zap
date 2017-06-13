@@ -1,0 +1,104 @@
+% !TEX encoding = utf8
+% !TeX spellcheck = pl_PL
+
+
+\documentclass[a4paper, 10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[polish]{babel}
+\usepackage{polski}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{url}
+\usepackage{booktabs}
+
+\author{Borys Jeleński, Jakub Postępski}
+\title{Sprawozdanie - Zaawansowane architektury procesorów}
+\graphicspath{{../images/}}
+
+
+\begin{document}
+	\maketitle
+	\section{Wstęp}
+	Celem było porównanie metod szyfrowania symetrycznego algorytmem AES-128-CBC\cite{bib:AES} na mikrokontrolerze z serii STM32L1. Porównano następujące implementacje:
+	\begin{itemize}
+		\item autorską, programową
+		\item sprzętową
+	\end{itemize}
+	\section{Algorytm AES-128-CBC}
+	\label{sec:aes}
+	W algorytmie AES-128-CBC mamy do czynienia z szyfrowaniem symetrycznym. Klucz, tak jak blok danych, ma długość 128 bitów. Dłuższe wiadomości są rozbijane na bloki tej długości. Bloki przedstawiane są jako macierze rozmiaru 4 x 4 bajtów, nazywanych macierzami stanu. Dla każdego z bloków generowany jest podklucz początkowy, oraz po jednym podkluczu dla każdej rundy szyfrującej. Dla rundy inicjującej, każdy bajt z bloku jest sumowany operacją XOR z odpowiednim bajtem podklucza początkowego. Następnie wykonywanych jest 9 rund szyfrujących. Dla każdej z rund wykonywane są następujące operacje:
+	\begin{itemize}
+	\item operacja SB - zastępowanie bajtów innym bajtami (zgodnie ze zdefiniowanymi tabelami)
+	\item operacja SR - przesunięcie bitowe trzech ostatnich wierszy macierzy stanu, o zdefiniowane wartości
+	\item operacja MC - mnożenie macierzy stanu przez zdefiniowaną macierz rozmiaru 4x4 bajtów
+	\item operacja AR - wykonanie operacji XOR na podkluczu dla danej rundy oraz danych w macierzy stanu
+	\end{itemize}
+	Na koniec wykonywana jest runda kończąca, która różni się od wcześniejszych rund brakiem operacji MC.\\
+	Pierwsze bajty klucza są oryginalnym kluczem. Klucz jest rozszerzany do 176 bajtów. Generowanie czterech kolejnych bajtów klucza polega na:
+	\begin{itemize}
+	\item skopiowaniu ostatnich 4 bajtów klucza
+	\item zrotowaniu bajtów o jedną pozycję w lewo
+	\item wymieszaniu bajtów zgodnie ze zdefiniowanym porządkiem
+	\item zsumowanie XOR lewego bajtu z dwójką podniesioną do potęgi numeru iteracji pomniejszoną o jeden
+	\item zsumowaniu XOR ostatnich 4 bajtów ze zdefiniowanym blokiem klucza.
+	\end{itemize}
+	W trybie CBC szyfrowany blok jest sumowany w trybie XOR z poprzednim blokiem, przed rozpoczęciem szyfrowania. Do odszyfrowywania wykonywane są analogiczne operacje. 
+	
+	\section{Środowisko testowe}
+	Do testów wykorzystano mikrokontroler STM32L162RD\cite{bib:STM}, który posiada sprzętowe wsparcie dla algorytmu AES-128. Taktowanie rdzenia Cortex-M3 zostało ustawione na 16MHz. Mikrokontroler posiada pamięć flash typu ECC oraz 48KB pamięci RAM. Mikrokontroler wlutowano w płytkę Nucleo 64 (posiada wbudowanyprogramator ST-Link). Użyto środowiska programistycznego Keil uVision 5.\\
+	Do obsługi mikrokontrolera wykorzystano biblioteki HAL. Do komunikacji z użytkownikiem wykorzystano połączenie szeregowe, z prędkością 115200 b/s. Zastosowano autorską bibliotekę do parsowania poleceń.\\
+	Do pamięci flash wgrano blok z niezaszyfrowanymi danymi o długości 64kB, w taki sposób aby nie przesłaniały kodu programu. Szyfrowane dane zawsze pobierane są z pamięci flash. Istnieje możliwość zapisu zaszyfrowanych danych do pamięci flash, pamięci RAM oraz nie zapisaniu ich nigdzie.
+	
+	\section{Instrukcja użytkowania}
+	Użytkownikowi zostały udostępnione funkcje szyfrowania danych, oraz odszyfrowania danych wcześniej zaszyfrowanych. Do pamięci flash zostały wcześniej wpisane przykładowe dane szyfrujące. Wykonanie zadań jest wynikiem wysłania odpowiednich komend przez port szeregowy. Dostępne są:
+	\begin{itemize}
+	\item \textbf{setclkres [res\_symbol]} ustawia sposób odmierzania czasu testu, gdzie \textbf{res\_symbol} to \textbf{cc}, \textbf{us} lub \textbf{ms}, co oznacza odpowiednio cykle zegarowe, mikrosekundy oraz milisekundy.
+	\item \textbf{enc [size] [size\_unit] [impl] [memtype]} gdzie \textbf{size} odpowiada za rozmiar, \textbf{size\_unit} rozmiar bloku, do wyboru \textbf{block} oraz \textbf{kB}. Pole \textbf{impl} wybiera rodzaj algorytmu odpowiednio \textbf{acc}, \textbf{mbedtls} oraz \textbf{custom} odpowiada implementacji sprzętowej, implementacji z biblioteki mbedTLS oraz własnej implementacji. Pole \textbf{memtype} jest opcjonalne (domyślnie \textbf{discard}). Do wyboru mamy  \textbf{flash}, \textbf{ram} oraz \textbf{discard} co daje zapis odpowiednio do pamięci RAM, do pamięci flash oraz brak zapisu. Przed zapisem do pamięci flash następuje wymazanie odpowiednich bloków tej pamięci.
+	\item \textbf{dec [size] [size\_unit] [impl] [memtype]} odszyfrowuje wcześniej zaszyfrowany tekst. Parametry jak wcześniej.
+	\item \textbf{printplain [size] [size\_unit]} pozwala na odczytanie tekstu niezaszyfrowanego. Parametry jak wcześniej. 
+	\item \textbf{printcipher [size] [size\_unit]} pozwala na odczytanie zaszyfrowanego tekstu. Parametry jak wcześniej. 
+	\item \textbf{printdecipher [size] [size\_unit]} pozwala na odczytanie tekstu odszyfrowanego. Parametry jak wcześniej.
+	\end{itemize}
+	\section{Implementacje}
+	\subsection{Programowe}
+	Kod autorskiej implementacji algorytmu opisany jest w pliku \textit{my\_aes.c}. Większość instrukcji wykonywana jest na 8 bitowych słowach. Kod w czytelny sposób odwzorowuje algorytm AES-128-CBC, lecz nie jest tak dobrze zoptymalizowany jak implementacje dostępne np. w bibliotece mbedTLS. Implementacja została oparta o założenia z sekcji \ref{sec:aes}.
+	\subsection{Sprzętowa}
+	Wbudowany moduł szyfrowania sprzętowego wymaga, aby przed rozpoczęciem szyfrowania zapisać w rejestrach AES\_KEYRx klucz i ustawić opcję szyfrowania (np. szyfrowanie, odszyfrowywanie). Następnie należy ustawić odpowiedni tryb  szyfrowania (bity CHMOD, rejestr AES\_CR) i uruchomić moduł (bit EN, rejest AES\_CR). Moduł jest wtedy gotowy na przyjęcie danych do szyfrowania bądź deszyfrowania (rejestr AES\_DINR). Stan szyfrowania jest dostępny w bicie CCF rejestru AES\_SR. Moduł może też zgłaszać przerwania. Po zakończeniu obliczeń wynik dostępny jest w rejestrze AES\_DOUTR. Obsługi użyto funkcji \textbf{HAL\_CRYP\_Init()}, \textit{ACC\_AES\_RESET()} oraz \textit{HAL\_CRYP\_AESECB\_Encrypt()}.
+	\section{Porównanie}
+	W celu mierzenia czasu, jaki potrzebny jest na wykonanie szyfrowania stosowany jest timer. W zmiennej zapamiętywana jest wartość timera, w momencie rozpoczęcia procedury i porównywana z wartością timera w momencie zakończenia procedury. Porównanie zostało przeprowadzone przy optymalizacji O0.\\
+	Wykonano porównanie dla zapisu do pamięci RAM (tabela \ref{tab:ram}) oraz dla braku zapisu (tabela \ref{tab:discard}).
+	
+	
+	\begin{table}[]
+	\centering
+	\caption{Porównanie dla zapisu do RAMu (cc - cykle zegara)}
+	\label{tab:ram}
+	\begin{tabular}{@{}lll@{}}
+	\toprule
+	implementacja & 1 blok  & 16 bloków \\ \midrule
+	programowa    & 8674 cc & 3895 us   \\
+	sprzętowa     & 1080 cc & 297 us    \\ \bottomrule
+	\end{tabular}
+	\end{table}
+	
+	\begin{table}[]
+	
+	\centering
+	\caption{Porównanie dla braku zapisu (cc - cykle zegara)}
+	\label{tab:discard}
+	\begin{tabular}{@{}lllll@{}}
+	\toprule
+	implementacja & 1 blok  & 16 bloków & 16kB      & 64kB      \\ \midrule
+	programowa    & 8662 cc & 3889 us   & 246992 us & 987880 us \\
+	sprzętowa     & 1069 cc & 290 us    & 17584 us  & 70288 us  \\ \bottomrule
+	\end{tabular}
+	\end{table}
+	
+	Jak widać przy wykorzystaniu akceleracji sprzętowej można uzyskać około ośmiokrotny wzrost wydajności dla szyfrowania jednego bloku, oraz około czternastokrotny wzrost wydajności dla tekstów dłuższych. Zapis do pamięci RAM nie powoduje drastycznego zmniejszenia wydajności.
+	\bibliography{thebibliography}
+	\bibliographystyle{ieeetr}
+\end{document}

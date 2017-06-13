@@ -1,0 +1,11 @@
+\begin{thebibliography}{1}
+
+\bibitem{bib:AES}
+``{ADVANCED ENCRYPTION STANDARD (AES)}.''
+  \url{https://doi.org/10.6028/NIST.FIPS.197}.
+
+\bibitem{bib:STM}
+``{STM32L162RD)}.''
+  \url{https://my.st.com/content/my_st_com/en/products/microcontrollers/stm32-32-bit-arm-cortex-mcus/stm32l1-series/stm32l162/stm32l162rd.html}.
+
+\end{thebibliography}
