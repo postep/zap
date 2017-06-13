@@ -49,7 +49,7 @@
 	W trybie CBC szyfrowany blok jest sumowany w trybie XOR z poprzednim blokiem, przed rozpoczęciem szyfrowania. Do odszyfrowywania wykonywane są analogiczne operacje. 
 	
 	\section{Środowisko testowe}
-	Do testów wykorzystano mikrokontroler STM32L162RD\cite{bib:STM}, który posiada sprzętowe wsparcie dla algorytmu AES-128. Taktowanie rdzenia Cortex-M3 zostało ustawione na 16MHz. Mikrokontroler posiada pamięć flash typu ECC oraz 48KB pamięci RAM. Mikrokontroler wlutowano w płytkę Nucleo 64 (posiada wbudowanyprogramator ST-Link). Użyto środowiska programistycznego Keil uVision 5.\\
+	Do testów wykorzystano mikrokontroler STM32L162RD\cite{bib:STM}, który posiada sprzętowe wsparcie dla algorytmu AES-128. Taktowanie rdzenia Cortex-M3 zostało ustawione na 32MHz. Mikrokontroler posiada pamięć flash typu ECC oraz 48KB pamięci RAM. Mikrokontroler wlutowano w płytkę Nucleo 64 (posiada wbudowanyprogramator ST-Link). Użyto środowiska programistycznego Keil uVision 5.\\
 	Do obsługi mikrokontrolera wykorzystano biblioteki HAL. Do komunikacji z użytkownikiem wykorzystano połączenie szeregowe, z prędkością 115200 b/s. Zastosowano autorską bibliotekę do parsowania poleceń.\\
 	Do pamięci flash wgrano blok z niezaszyfrowanymi danymi o długości 64kB, w taki sposób aby nie przesłaniały kodu programu. Szyfrowane dane zawsze pobierane są z pamięci flash. Istnieje możliwość zapisu zaszyfrowanych danych do pamięci flash, pamięci RAM oraz nie zapisaniu ich nigdzie.
 	
